@@ -69,9 +69,9 @@ read -rp "Enter your email for the GPG key: " GPG_EMAIL
 
 gpg --batch --gen-key <<EOF
 %no-protection
-Key-Type: default
+Key-Type: RSA
 Key-Length: 4096
-Subkey-Type: default
+Subkey-Type: RSA
 Name-Real: $USER
 Name-Email: $GPG_EMAIL
 Expire-Date: 0
