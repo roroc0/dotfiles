@@ -83,6 +83,9 @@ source $ZSH/oh-my-zsh.sh
 
 # User configuration
 
+export PATH=/home/roman/home/programs/stm32prog_2.23.0/bin:$PATH
+
+
 # export MANPATH="/usr/local/man:$MANPATH"
 
 # You may need to manually set your language environment
@@ -112,3 +115,16 @@ source $ZSH/oh-my-zsh.sh
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# >>> Added by Spyder >>>
+alias spyder=/home/roman/.local/spyder-6/envs/spyder-runtime/bin/spyder
+alias uninstall-spyder=/home/roman/.local/spyder-6/uninstall-spyder.sh
+# <<< Added by Spyder <<<
+export PATH="$HOME/.local/bin:$PATH"
+
+
+# CUSTOM ALIAS
+alias cw="cd ~/git"
+alias w="~/git"
+alias logic="/home/roman/programs/Logic-2.4.44-linux-x64.AppImage --no-sandbox"
+alias pi="ssh hydryx_tv@192.168.178.70"

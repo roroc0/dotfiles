@@ -9,7 +9,8 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y \
     git python3 make gcc picocom zsh \
     terminator btop neovim bat wget \
-    curl snapd ranger vlc stow gnupg
+    curl snapd ranger vlc stow gnupg \
+    kitty
 
 echo "--------------------------------------------"
 echo "Installing Snap packages..."
@@ -29,61 +30,91 @@ echo "Linking config files with stow..."
 echo "--------------------------------------------"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
-stow zsh p10k nvim
 
-echo "--------------------------------------------"
-echo "Setting Zsh as the default shell..."
-echo "--------------------------------------------"
-chsh -s "$(which zsh)"
+BACKUP_DIR="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
 
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    echo "--------------------------------------------"
-    echo "Installing Oh My Zsh..."
-    echo "--------------------------------------------"
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-fi
+# Move existing files that aren't already linked to this repo out of the way so stow doesn't conflict
+backup_conflicts() {
+    local target="$1"; shift
+    local pkg file dest
+    for pkg in "$@"; do
+        while IFS= read -r file; do
+            file="${file#"$pkg"/}"
+            dest="$target/$file"
+            # Skip anything already resolving into this repo (e.g. via a symlinked parent dir)
+            if [ -e "$dest" ] && [[ "$(realpath "$dest")" != "$SCRIPT_DIR"/* ]]; then
+                mkdir -p "$BACKUP_DIR/$(dirname "$dest")"
+                mv "$dest" "$BACKUP_DIR/$dest"
+                echo "Backed up $dest -> $BACKUP_DIR$dest"
+            fi
+        done < <(find "$pkg" -type f -o -type l)
+    done
+}
 
-if [ ! -d "$HOME/.oh-my-zsh/custom/themes/powerlevel10k" ]; then
-    echo "--------------------------------------------"
-    echo "Installing Powerlevel10k theme..."
-    echo "--------------------------------------------"
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
-        "$HOME/.oh-my-zsh/custom/themes/powerlevel10k"
-fi
+# Stow dotfiles that go directly into ~
+HOME_PKGS=(zsh p10k)
+backup_conflicts "$HOME" "${HOME_PKGS[@]}"
+stow -R -t "$HOME" "${HOME_PKGS[@]}"
 
-ZSH_CUSTOM="$HOME/.oh-my-zsh/custom/plugins"
+# Stow dotfiles that belong in ~/.config/
+CONFIG_PKGS=(nvim terminator kitty)
+mkdir -p "$HOME/.config"
+backup_conflicts "$HOME/.config" "${CONFIG_PKGS[@]}"
+stow -R -t "$HOME/.config" "${CONFIG_PKGS[@]}"
 
-echo "--------------------------------------------"
-echo "Installing Zsh plugins..."
-echo "--------------------------------------------"
-[ ! -d "$ZSH_CUSTOM/zsh-autosuggestions" ] && \
-    git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/zsh-autosuggestions"
+# echo "--------------------------------------------"
+# echo "Setting Zsh as the default shell..."
+# echo "--------------------------------------------"
+# chsh -s "$(which zsh)"
 
-[ ! -d "$ZSH_CUSTOM/zsh-syntax-highlighting" ] && \
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/zsh-syntax-highlighting"
+# if [ ! -d "$HOME/.oh-my-zsh" ]; then
+#     echo "--------------------------------------------"
+#     echo "Installing Oh My Zsh..."
+#     echo "--------------------------------------------"
+#     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+# fi
 
-echo "--------------------------------------------"
-echo "Creating GPG key..."
-echo "--------------------------------------------"
-read -rp "Enter your email for the GPG key: " GPG_EMAIL
+# if [ ! -d "$HOME/.oh-my-zsh/custom/themes/powerlevel10k" ]; then
+#     echo "--------------------------------------------"
+#     echo "Installing Powerlevel10k theme..."
+#     echo "--------------------------------------------"
+#     git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
+#         "$HOME/.oh-my-zsh/custom/themes/powerlevel10k"
+# fi
 
-gpg --batch --gen-key <<EOF
-%no-protection
-Key-Type: RSA
-Key-Length: 4096
-Subkey-Type: RSA
-Name-Real: $USER
-Name-Email: $GPG_EMAIL
-Expire-Date: 0
-%commit
-EOF
+# ZSH_CUSTOM="$HOME/.oh-my-zsh/custom/plugins"
 
-echo "--------------------------------------------"
-echo "Your GPG public key (add this to GitHub):"
-echo "--------------------------------------------"
-gpg --armor --export "$GPG_EMAIL"
+# echo "--------------------------------------------"
+# echo "Installing Zsh plugins..."
+# echo "--------------------------------------------"
+# [ ! -d "$ZSH_CUSTOM/zsh-autosuggestions" ] && \
+#     git clone https://github.com/zsh-users/zsh-autosuggestions "$ZSH_CUSTOM/zsh-autosuggestions"
 
-echo "--------------------------------------------"
-echo "Setup complete. Restart your terminal to apply changes."
-echo "--------------------------------------------"
+# [ ! -d "$ZSH_CUSTOM/zsh-syntax-highlighting" ] && \
+#     git clone https://github.com/zsh-users/zsh-syntax-highlighting "$ZSH_CUSTOM/zsh-syntax-highlighting"
+
+# echo "--------------------------------------------"
+# echo "Creating GPG key..."
+# echo "--------------------------------------------"
+# read -rp "Enter your email for the GPG key: " GPG_EMAIL
+
+# gpg --batch --gen-key <<EOF
+# %no-protection
+# Key-Type: RSA
+# Key-Length: 4096
+# Subkey-Type: RSA
+# Name-Real: $USER
+# Name-Email: $GPG_EMAIL
+# Expire-Date: 0
+# %commit
+# EOF
+
+# echo "--------------------------------------------"
+# echo "Your GPG public key (add this to GitHub):"
+# echo "--------------------------------------------"
+# gpg --armor --export "$GPG_EMAIL"
+
+# echo "--------------------------------------------"
+# echo "Setup complete. Restart your terminal to apply changes."
+# echo "--------------------------------------------"
 
